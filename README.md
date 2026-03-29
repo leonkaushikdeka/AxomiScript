@@ -5,6 +5,7 @@
 [![Tests](https://img.shields.io/badge/tests-24%20passing-brightgreen)](tests/)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/leonkaushikdeka/AxomiScript/actions/workflows/test.yml/badge.svg)](https://github.com/leonkaushikdeka/AxomiScript/actions)
 [![Community](https://img.shields.io/badge/add%20your%20language-open%20PR-orange)](docs/adding_a_language.md)
 
 ---
