@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="as">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AsomiScript IDE</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+}
+.logo { font-size: 1.2rem; font-weight: 700; color: #58a6ff; letter-spacing: -0.5px; }
+.logo span { color: #e6edf3; }
+
+.lang-select {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.toolbar { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+
+button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+button:hover { opacity: 0.85; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-run    { background: #238636; color: #fff; border-color: #2ea043; }
+.btn-py     { background: #1f6feb; color: #fff; border-color: #388bfd; }
+.btn-cpp    { background: #6e40c9; color: #fff; border-color: #8957e5; }
+.btn-clear  { background: transparent; color: #8b949e; border-color: #30363d; }
+
+/* ── Main layout ── */
+main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 1px;
+  flex: 1;
+  overflow: hidden;
+  background: #30363d;
+}
+
+.pane {
+  background: #0d1117;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.pane-header .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #30363d;
+}
+.dot-green  { background: #3fb950 !important; }
+.dot-blue   { background: #388bfd !important; }
+.dot-purple { background: #8957e5 !important; }
+.dot-orange { background: #d29922 !important; }
+
+/* ── Editor ── */
+#editor {
+  flex: 1;
+  width: 100%;
+  background: #0d1117;
+  color: #e6edf3;
+  border: none;
+  resize: none;
+  outline: none;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 14px 18px;
+  caret-color: #58a6ff;
+  tab-size: 4;
+}
+#editor::placeholder { color: #484f58; }
+
+/* ── Output tabs ── */
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 14px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+}
+.tab {
+  padding: 7px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #8b949e;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s;
+}
+.tab:hover { color: #e6edf3; }
+.tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+
+.tab-content { display: none; flex: 1; overflow: auto; }
+.tab-content.active { display: flex; flex-direction: column; }
+
+/* ── Output pane ── */
+#output-run {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding: 14px 18px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+  overflow-y: auto;
+}
+.out-stdout { color: #e6edf3; }
+.out-stderr { color: #f85149; }
+.out-info   { color: #8b949e; font-style: italic; }
+
+pre.code-output {
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding: 14px 18px;
+  color: #e6edf3;
+  overflow: auto;
+  flex: 1;
+  white-space: pre;
+}
+
+/* ── Status bar ── */
+#statusbar {
+  grid-column: 1 / -1;
+  background: #161b22;
+  border-top: 1px solid #30363d;
+  padding: 4px 18px;
+  font-size: 0.75rem;
+  color: #8b949e;
+  display: flex;
+  gap: 24px;
+}
+.status-ok    { color: #3fb950; }
+.status-error { color: #f85149; }
+.status-run   { color: #d29922; }
+
+/* ── Spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border: 2px solid #30363d;
+  border-top-color: #58a6ff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* Syntax highlight colours (applied client-side) */
+.kw-var    { color: #ff7b72; }
+.kw-if     { color: #ff7b72; }
+.kw-else   { color: #ff7b72; }
+.kw-loop   { color: #ff7b72; }
+.kw-print  { color: #d2a8ff; }
+.kw-to     { color: #ff7b72; }
+.str-lit   { color: #a5d6ff; }
+.num-lit   { color: #79c0ff; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Asomi<span>Script</span> IDE</div>
+  <select id="lang-select" class="lang-select">
+    {% for lang in languages %}
+    <option value="{{ lang }}" {% if lang == 'assamese' %}selected{% endif %}>
+      {{ lang | capitalize }}
+    </option>
+    {% endfor %}
+  </select>
+  <div class="toolbar">
+    <button class="btn-run"   id="btn-run">  ▶ Run</button>
+    <button class="btn-py"    id="btn-py">   ⟳ Python</button>
+    <button class="btn-cpp"   id="btn-cpp">  ⟳ C++17</button>
+    <button class="btn-clear" id="btn-clear">✕ Clear</button>
+  </div>
+</header>
+
+<main>
+  <!-- Left: source editor -->
+  <div class="pane">
+    <div class="pane-header">
+      <div class="dot dot-green"></div>
+      Source  —  <span id="filename">untitled.as</span>
+    </div>
+    <textarea id="editor" spellcheck="false"
+      placeholder="চলক ক = ১০&#10;যদি ক > ৫ {&#10;    মুদ্ৰণ &quot;ডাঙৰ&quot;&#10;}"></textarea>
+  </div>
+
+  <!-- Right: output + transpiled code -->
+  <div class="pane">
+    <div class="tabs">
+      <div class="tab active" data-tab="run">Output</div>
+      <div class="tab"        data-tab="python">Python</div>
+      <div class="tab"        data-tab="cpp">C++17</div>
+      <div class="tab"        data-tab="ast">AST</div>
+    </div>
+
+    <div id="tab-run" class="tab-content active">
+      <div id="output-run">
+        <span class="out-info">Press ▶ Run to execute your program.</span>
+      </div>
+    </div>
+
+    <div id="tab-python" class="tab-content">
+      <pre class="code-output" id="output-python"><span style="color:#484f58">// Transpiled Python will appear here.</span></pre>
+    </div>
+
+    <div id="tab-cpp" class="tab-content">
+      <pre class="code-output" id="output-cpp"><span style="color:#484f58">// Transpiled C++ will appear here.</span></pre>
+    </div>
+
+    <div id="tab-ast" class="tab-content">
+      <pre class="code-output" id="output-ast"><span style="color:#484f58">// AST (JSON) will appear here.</span></pre>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="statusbar">
+    <span id="status-msg">Ready</span>
+    <span id="status-lang">Language: assamese</span>
+    <span id="status-lines">Lines: 0</span>
+  </div>
+</main>
+
+<script>
+const editor      = document.getElementById('editor');
+const langSelect  = document.getElementById('lang-select');
+const statusMsg   = document.getElementById('status-msg');
+const statusLang  = document.getElementById('status-lang');
+const statusLines = document.getElementById('status-lines');
+
+// ── Tab switching ─────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-content').forEach(c =>
+    c.classList.toggle('active', c.id === 'tab-' + name));
+}
+
+// ── Status helpers ────────────────────────────────────────────────────
+function setStatus(msg, cls = '') {
+  statusMsg.className = cls;
+  statusMsg.textContent = msg;
+}
+
+editor.addEventListener('input', () => {
+  const lines = editor.value.split('\n').length;
+  statusLines.textContent = 'Lines: ' + lines;
+});
+
+langSelect.addEventListener('change', () => {
+  statusLang.textContent = 'Language: ' + langSelect.value;
+});
+
+// ── API helpers ───────────────────────────────────────────────────────
+async function apiPost(endpoint, body) {
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return resp.json();
+}
+
+function setLoading(btn, loading) {
+  btn.disabled = loading;
+  if (loading) {
+    btn.dataset.orig = btn.textContent;
+    btn.innerHTML = '<span class="spinner"></span> Running\u2026';
+  } else {
+    btn.textContent = btn.dataset.orig || btn.textContent;
+  }
+}
+
+// ── Run ───────────────────────────────────────────────────────────────
+document.getElementById('btn-run').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-run');
+  const source = editor.value;
+  if (!source.trim()) return;
+
+  setLoading(btn, true);
+  setStatus('Running\u2026', 'status-run');
+  showTab('run');
+
+  const data = await apiPost('/api/run', {
+    source, language: langSelect.value
+  }).catch(e => ({ ok: false, error: String(e) }));
+
+  setLoading(btn, false);
+  const out = document.getElementById('output-run');
+
+  if (data.ok || data.exit_code === 0) {
+    out.innerHTML =
+      (data.stdout
+        ? `<span class="out-stdout">${escHtml(data.stdout)}</span>`
+        : `<span class="out-info">(no output)</span>`) +
+      (data.stderr
+        ? `\n<span class="out-stderr">${escHtml(data.stderr)}</span>`
+        : '');
+    setStatus('Ran OK', 'status-ok');
+    // Also populate python tab if available
+    if (data.python) {
+      document.getElementById('output-python').textContent = data.python;
+    }
+  } else {
+    out.innerHTML = `<span class="out-stderr">${escHtml(data.error || data.stderr || 'Unknown error')}</span>`;
+    setStatus('Error', 'status-error');
+  }
+});
+
+// ── Compile to Python ─────────────────────────────────────────────────
+document.getElementById('btn-py').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-py');
+  const source = editor.value;
+  if (!source.trim()) return;
+
+  setLoading(btn, true);
+  setStatus('Compiling to Python\u2026', 'status-run');
+
+  const data = await apiPost('/api/compile', {
+    source, language: langSelect.value, target: 'python'
+  }).catch(e => ({ ok: false, error: String(e) }));
+
+  setLoading(btn, false);
+
+  if (data.ok) {
+    document.getElementById('output-python').textContent = data.output;
+    showTab('python');
+    setStatus('Python OK', 'status-ok');
+  } else {
+    document.getElementById('output-run').innerHTML =
+      `<span class="out-stderr">${escHtml(data.error)}</span>`;
+    showTab('run');
+    setStatus('Compile error', 'status-error');
+  }
+});
+
+// ── Compile to C++ ────────────────────────────────────────────────────
+document.getElementById('btn-cpp').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-cpp');
+  const source = editor.value;
+  if (!source.trim()) return;
+
+  setLoading(btn, true);
+  setStatus('Compiling to C++\u2026', 'status-run');
+
+  // Also fetch AST at same time
+  const [cppData, astData] = await Promise.all([
+    apiPost('/api/compile', { source, language: langSelect.value, target: 'cpp' }),
+    apiPost('/api/compile', { source, language: langSelect.value, target: 'ast' }),
+  ]).catch(e => [{ ok: false, error: String(e) }, { ok: false }]);
+
+  setLoading(btn, false);
+
+  if (cppData.ok) {
+    document.getElementById('output-cpp').textContent = cppData.output;
+    if (astData.ok) {
+      document.getElementById('output-ast').textContent = astData.output;
+    }
+    showTab('cpp');
+    setStatus('C++ OK', 'status-ok');
+  } else {
+    document.getElementById('output-run').innerHTML =
+      `<span class="out-stderr">${escHtml(cppData.error)}</span>`;
+    showTab('run');
+    setStatus('Compile error', 'status-error');
+  }
+});
+
+// ── Clear ─────────────────────────────────────────────────────────────
+document.getElementById('btn-clear').addEventListener('click', () => {
+  editor.value = '';
+  document.getElementById('output-run').innerHTML =
+    '<span class="out-info">Press \u25b6 Run to execute your program.</span>';
+  document.getElementById('output-python').textContent = '';
+  document.getElementById('output-cpp').textContent = '';
+  document.getElementById('output-ast').textContent = '';
+  setStatus('Ready');
+  editor.focus();
+});
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────
+editor.addEventListener('keydown', e => {
+  // Ctrl+Enter or Cmd+Enter → Run
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('btn-run').click();
+  }
+  // Tab → 4 spaces
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = editor.selectionStart;
+    editor.value = editor.value.slice(0, s) + '    ' + editor.value.slice(editor.selectionEnd);
+    editor.selectionStart = editor.selectionEnd = s + 4;
+  }
+});
+
+// ── HTML escape helper ────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+editor.focus();
+statusLines.textContent = 'Lines: 0';
+</script>
+</body>
+</html>
