@@ -10,6 +10,12 @@
 
 ---
 
+## Demo
+
+![Running locally](screenshots/demo.png)
+
+---
+
 ## What is AxomiScript?
 
 AxomiScript lets you **write real programs in Assamese** (অসমীয়া).
